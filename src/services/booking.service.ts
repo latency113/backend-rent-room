@@ -302,10 +302,14 @@ export class BookingService {
     return bookingRepository.findById(id);
   }
 
-  async getCalendarBookings(roomId?: string | number): Promise<Booking[]> {
+  async getCalendarBookings(roomId?: string | number, date?: string): Promise<Booking[]> {
     const filters: ReportFilterDTO = {};
     if (roomId && roomId !== 'All') {
       filters.room_id = roomId;
+    }
+    if (date) {
+      filters.start_date = date;
+      filters.end_date = date;
     }
     return bookingRepository.findAll(filters);
   }

@@ -82,11 +82,16 @@ const app = new Elysia()
   .use(bookingController)
   .use(reportController)
   .use(notificationController)
-  .use(uploadController)
-  .listen(port, async () => {
+  .use(uploadController);
+
+if (!process.env.VERCEL) {
+  app.listen(port, async () => {
     console.log(`🚀 Meeting Room API server is running on http://localhost:${port}`);
     console.log(`📑 Swagger Documentation available at http://localhost:${port}/docs`);
     await checkSupabaseConnection();
   });
+}
 
+export { app };
+export default app;
 export type App = typeof app;
