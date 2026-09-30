@@ -161,8 +161,8 @@ export class BookingService {
       }
     }
 
-    let startISO = existing.start_time;
-    let endISO = existing.end_time;
+    let startISO = existing.start_time_iso || existing.raw_start_time || `${existing.booking_date}T${existing.start_time}:00`;
+    let endISO = existing.end_time_iso || existing.raw_end_time || `${existing.booking_date}T${existing.end_time}:00`;
 
     if (data.start_time || data.end_time || data.booking_date) {
       const bDate = data.booking_date || existing.booking_date;
@@ -234,17 +234,42 @@ export class BookingService {
     return updated;
   }
 
-  async approveBooking(id: string | number, adminId?: number, note?: string): Promise<Booking> {
+  async approveBooking(
+    id: string | number,
+    adminIdOrNote?: number | string,
+    note?: string
+  ): Promise<Booking> {
     const existing = await bookingRepository.findById(id);
     if (!existing) {
       throw new Error('ไม่พบข้อมูลการจองนี้');
     }
 
+    let adminId: number | undefined;
+    let finalNote = note;
+    if (typeof adminIdOrNote === 'number') {
+      adminId = adminIdOrNote;
+    } else if (typeof adminIdOrNote === 'string') {
+      if (!isNaN(Number(adminIdOrNote))) {
+        adminId = Number(adminIdOrNote);
+      } else {
+        finalNote = adminIdOrNote;
+      }
+    }
+
+    let startISO = existing.start_time_iso || existing.raw_start_time;
+    let endISO = existing.end_time_iso || existing.raw_end_time;
+    if (!startISO || !startISO.includes('T')) {
+      startISO = `${existing.booking_date}T${existing.start_time}:00`;
+    }
+    if (!endISO || !endISO.includes('T')) {
+      endISO = `${existing.booking_date}T${existing.end_time}:00`;
+    }
+
     // Re-verify no other approved booking clashes
     const overlaps = await bookingRepository.findOverlappingBookings(
       existing.room_id,
-      existing.start_time,
-      existing.end_time,
+      startISO,
+      endISO,
       existing.booking_id
     );
 
@@ -253,7 +278,7 @@ export class BookingService {
       throw new Error('ไม่สามารถอนุมัติได้ เนื่องจากมีรายการที่ได้รับการอนุมัติแล้วในช่วงเวลาเดียวกัน');
     }
 
-    const updated = await bookingRepository.updateStatus(id, 'APPROVED', note || 'อนุมัติเรียบร้อย', adminId);
+    const updated = await bookingRepository.updateStatus(id, 'APPROVED', finalNote || 'อนุมัติเรียบร้อย', adminId);
     if (!updated) {
       throw new Error('ไม่สามารถอนุมัติการจองได้');
     }
@@ -266,16 +291,32 @@ export class BookingService {
     return updated;
   }
 
-  async rejectBooking(id: string | number, adminId?: number, reason?: string): Promise<Booking> {
+  async rejectBooking(
+    id: string | number,
+    adminIdOrReason?: number | string,
+    reason?: string
+  ): Promise<Booking> {
     const existing = await bookingRepository.findById(id);
     if (!existing) {
       throw new Error('ไม่พบข้อมูลการจองนี้');
     }
 
+    let adminId: number | undefined;
+    let finalReason = reason;
+    if (typeof adminIdOrReason === 'number') {
+      adminId = adminIdOrReason;
+    } else if (typeof adminIdOrReason === 'string') {
+      if (!isNaN(Number(adminIdOrReason))) {
+        adminId = Number(adminIdOrReason);
+      } else {
+        finalReason = adminIdOrReason;
+      }
+    }
+
     const updated = await bookingRepository.updateStatus(
       id,
       'REJECTED',
-      reason ? `ปฏิเสธ: ${reason}` : 'ไม่อนุมัติคำขอ',
+      finalReason ? `ปฏิเสธ: ${finalReason}` : 'ไม่อนุมัติคำขอ',
       adminId
     );
     if (!updated) {
@@ -283,7 +324,7 @@ export class BookingService {
     }
 
     try {
-      await notificationService.notifyBookingRejected(updated, reason);
+      await notificationService.notifyBookingRejected(updated, finalReason);
     } catch (notifErr: any) {
       console.error('[BookingService] notifyBookingRejected error:', notifErr?.message || notifErr);
     }

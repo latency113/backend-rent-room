@@ -24,6 +24,7 @@ export interface User {
   updated_at?: string;
   department?: Department;
   // Computed / convenience
+  id?: string | number;
   name?: string;
 }
 
@@ -106,6 +107,10 @@ export interface Booking {
   email?: string;
   attendees_count?: number;
   equipment?: string[];
+  raw_start_time?: string;
+  raw_end_time?: string;
+  start_time_iso?: string;
+  end_time_iso?: string;
 }
 
 // 7. BookingEquipment

@@ -154,8 +154,9 @@ export const bookingController = new Elysia({ prefix: '/api/bookings' })
       }
 
       try {
+        const adminId = Number(auth.id) || undefined;
         const note = (body as any)?.note;
-        const updated = await bookingService.approveBooking(params.id, note);
+        const updated = await bookingService.approveBooking(params.id, adminId, note);
         return { success: true, message: 'อนุมัติการจองห้องประชุมเรียบร้อยแล้ว', data: updated };
       } catch (err: any) {
         set.status = 400;
@@ -174,8 +175,9 @@ export const bookingController = new Elysia({ prefix: '/api/bookings' })
       }
 
       try {
+        const adminId = Number(auth.id) || undefined;
         const reason = (body as any)?.reason;
-        const updated = await bookingService.rejectBooking(params.id, reason);
+        const updated = await bookingService.rejectBooking(params.id, adminId, reason);
         return { success: true, message: 'ปฏิเสธการจองห้องประชุมเรียบร้อยแล้ว', data: updated };
       } catch (err: any) {
         set.status = 400;

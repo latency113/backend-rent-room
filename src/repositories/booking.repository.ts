@@ -18,8 +18,6 @@ export class BookingRepository {
 
     return {
       booking_id: b.booking_id,
-      start_time: b.start_time,
-      end_time: b.end_time,
       attendee_count: b.attendee_count,
       status: b.status,
       created_at: b.created_at,
@@ -57,6 +55,10 @@ export class BookingRepository {
       booking_date: dateStr,
       start_time: sTime,
       end_time: eTime,
+      raw_start_time: b.start_time,
+      raw_end_time: b.end_time,
+      start_time_iso: startTimeISO,
+      end_time_iso: endTimeISO,
       attendees_count: b.attendee_count,
       booker_name: userName,
       department: b.users?.department?.department_name || 'ฝ่ายพัฒนาผลิตภัณฑ์',
@@ -150,13 +152,35 @@ export class BookingRepository {
     excludeBookingId?: string | number
   ): Promise<any[]> {
     const numRoomId = Number(roomId);
+
+    // Safeguard timestamps if passed as HH:mm or partial string
+    let sISO = startDateTimeISO;
+    let eISO = endDateTimeISO;
+    if (sISO && !sISO.includes('T') && !sISO.includes('-')) {
+      const today = new Date().toISOString().split('T')[0];
+      sISO = `${today}T${sISO}:00`;
+    }
+    if (eISO && !eISO.includes('T') && !eISO.includes('-')) {
+      const today = new Date().toISOString().split('T')[0];
+      eISO = `${today}T${eISO}:00`;
+    }
+
+    try {
+      const parsedS = new Date(sISO);
+      const parsedE = new Date(eISO);
+      if (!isNaN(parsedS.getTime())) sISO = parsedS.toISOString();
+      if (!isNaN(parsedE.getTime())) eISO = parsedE.toISOString();
+    } catch {
+      // keep fallback
+    }
+
     let query = supabase
       .from('booking')
       .select('*, room(*)')
       .eq('room_id', numRoomId)
       .in('status', ['APPROVED', 'PENDING'])
-      .lt('start_time', endDateTimeISO)
-      .gt('end_time', startDateTimeISO);
+      .lt('start_time', eISO)
+      .gt('end_time', sISO);
 
     if (excludeBookingId) {
       query = query.neq('booking_id', Number(excludeBookingId));
