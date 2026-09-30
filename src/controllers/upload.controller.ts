@@ -3,9 +3,17 @@ import path from 'path';
 import fs from 'fs';
 import { supabase } from '../config/supabase';
 
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const isServerless = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+const uploadDir = isServerless
+  ? path.join('/tmp', 'uploads')
+  : path.join(process.cwd(), 'uploads');
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (e: any) {
+  console.warn('[UploadController] Could not initialize upload directory:', e.message);
 }
 
 export const uploadController = new Elysia({ prefix: '/api/upload' })
@@ -81,10 +89,19 @@ export const uploadController = new Elysia({ prefix: '/api/upload' })
 
           // 2. Fallback to Local Disk if Supabase Storage is not ready or failed
           if (!fileUrl) {
-            const filePath = path.join(uploadDir, filename);
-            await Bun.write(filePath, buffer);
-            fileUrl = `${origin}/uploads/${filename}`;
-            console.log(`[UploadController] 📁 Saved to local uploads: ${fileUrl}`);
+            try {
+              if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+              }
+              const filePath = path.join(uploadDir, filename);
+              await Bun.write(filePath, buffer);
+              fileUrl = `${origin}/uploads/${filename}`;
+              console.log(`[UploadController] 📁 Saved to local uploads: ${fileUrl}`);
+            } catch (diskErr: any) {
+              console.warn('[UploadController] Disk write failed, using base64 fallback:', diskErr.message);
+              const base64 = Buffer.from(buffer).toString('base64');
+              fileUrl = `data:${mimeType || 'image/jpeg'};base64,${base64}`;
+            }
           }
 
           uploadedUrls.push(fileUrl);

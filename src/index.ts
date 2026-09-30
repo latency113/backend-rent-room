@@ -53,8 +53,14 @@ const app = new Elysia()
   .get('/uploads/*', async ({ params, set }) => {
     const rawParam = params['*'] || '';
     const safeName = path.basename(rawParam);
-    const filePath = path.join(process.cwd(), 'uploads', safeName);
-    const file = Bun.file(filePath);
+    const localPath = path.join(process.cwd(), 'uploads', safeName);
+    const tmpPath = path.join('/tmp', 'uploads', safeName);
+
+    let file = Bun.file(localPath);
+    if (await file.exists()) {
+      return file;
+    }
+    file = Bun.file(tmpPath);
     if (await file.exists()) {
       return file;
     }
