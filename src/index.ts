@@ -41,7 +41,12 @@ const app = new Elysia()
           { name: 'Notifications', description: 'User alerts & simulated email notifications' }
         ]
       },
-      path: '/docs'
+      path: '/docs',
+      scalarConfig: {
+        spec: {
+          url: '/docs/json'
+        }
+      }
     })
   )
   .get('/', () => ({
