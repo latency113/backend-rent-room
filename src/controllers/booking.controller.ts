@@ -13,6 +13,14 @@ export const bookingController = new Elysia({ prefix: '/api/bookings' })
         return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนทำการจองห้องประชุม' };
       }
 
+      if (String(auth.role || '').toLowerCase() === 'admin') {
+        set.status = 403;
+        return {
+          success: false,
+          error: 'ผู้ดูแลระบบ (Admin) ไม่สามารถจองห้องประชุมได้ ระบบสงวนสิทธิ์สำหรับผู้ใช้งานทั่วไปเท่านั้น'
+        };
+      }
+
       try {
         const booking = await bookingService.createBooking(auth.id, body as any);
         set.status = 201;

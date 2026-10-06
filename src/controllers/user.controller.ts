@@ -126,7 +126,7 @@ export const userController = new Elysia({ prefix: '/api/users' })
       const ok = await userService.deleteUser(params.id);
       return { success: ok, message: ok ? 'ลบข้อมูลผู้ใช้งานเรียบร้อย' : 'ไม่พบผู้ใช้ที่ต้องการลบ' };
     } catch (err: any) {
-      set.status = 500;
+      set.status = 400;
       return { success: false, error: err.message };
     }
   });

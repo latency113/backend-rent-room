@@ -1,6 +1,7 @@
 import { bookingRepository } from '../repositories/booking.repository';
 import { roomRepository } from '../repositories/room.repository';
 import { equipmentRepository } from '../repositories/equipment.repository';
+import { userRepository } from '../repositories/user.repository';
 import { notificationService } from './notification.service';
 import { Booking, BookingStatus, CreateBookingDTO, ReportFilterDTO } from '../types';
 
@@ -94,6 +95,12 @@ export class BookingService {
     const numUserId = Number(userId);
     const numRoomId = Number(data.room_id);
 
+    // Disallow admin from booking
+    const booker = await userRepository.findById(numUserId);
+    if (booker && String(booker.role || '').toUpperCase() === 'ADMIN') {
+      throw new Error('ผู้ดูแลระบบ (Admin) ไม่สามารถจองห้องประชุมได้ ระบบสงวนสิทธิ์สำหรับผู้ใช้งานทั่วไปเท่านั้น');
+    }
+
     if (!numRoomId || !data.start_time || !data.end_time || !data.title) {
       throw new Error('กรุณากรอกข้อมูลการจองที่จำเป็นให้ครบถ้วน');
     }
@@ -107,6 +114,11 @@ export class BookingService {
     const room = await roomRepository.findById(numRoomId);
     if (!room) {
       throw new Error('ไม่พบห้องประชุมที่เลือก');
+    }
+
+    const isRoomAvailable = room.status !== undefined ? Number(room.status) === 1 : (room.is_active !== false);
+    if (!isRoomAvailable) {
+      throw new Error(`ห้องประชุม "${room.room_name || room.name}" อยู่ในสถานะปิดปรับปรุง ไม่สามารถทำการจองได้ในขณะนี้`);
     }
 
     const attendees = Number(data.attendees_count || data.attendee_count || 1);

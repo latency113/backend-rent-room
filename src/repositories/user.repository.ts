@@ -5,12 +5,17 @@ export class UserRepository {
   private formatUser(data: any): User {
     const firstName = data.first_name || '';
     const lastName = data.last_name || '';
+    const bookingCount = Array.isArray(data.booking) && data.booking[0]?.count !== undefined
+      ? Number(data.booking[0].count)
+      : (data.booking_count !== undefined ? Number(data.booking_count) : 0);
+
     return {
       ...data,
       id: String(data.user_id),
       name: `${firstName} ${lastName}`.trim() || data.name || data.email,
       department: data.department?.department_name || '',
-      branch: 'สำนักงานใหญ่'
+      branch: 'สำนักงานใหญ่',
+      booking_count: bookingCount
     };
   }
 
@@ -87,7 +92,7 @@ export class UserRepository {
   async findAll(status?: string, role?: string): Promise<User[]> {
     let query = supabase
       .from('users')
-      .select('*, department(*)')
+      .select('*, department(*), booking:booking!booking_user_id_fkey(count)')
       .order('user_id', { ascending: false });
 
     if (status && status !== 'all') {

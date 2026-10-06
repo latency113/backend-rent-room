@@ -36,14 +36,18 @@ export const roomController = new Elysia({ prefix: '/api/rooms' })
     },
     {
       body: t.Object({
-        code: t.String(),
-        name: t.String(),
+        code: t.Optional(t.String()),
+        room_code: t.Optional(t.String()),
+        name: t.Optional(t.String()),
+        room_name: t.Optional(t.String()),
         capacity: t.Number(),
         floor: t.Optional(t.String()),
+        location_detail: t.Optional(t.String()),
         description: t.Optional(t.String()),
         image_url: t.Optional(t.String()),
         images: t.Optional(t.Array(t.String())),
         equipment: t.Optional(t.Array(t.String())),
+        status: t.Optional(t.Union([t.Number(), t.String()])),
         is_active: t.Optional(t.Boolean())
       })
     }

@@ -1,5 +1,6 @@
 import { userRepository } from '../repositories/user.repository';
 import { notificationService } from './notification.service';
+import { supabase } from '../config/supabase';
 import { User, UserStatus } from '../types';
 
 export class UserService {
@@ -140,6 +141,21 @@ export class UserService {
   }
 
   async deleteUser(id: string | number): Promise<boolean> {
+    const numId = Number(id);
+    // Check if user has any bookings in the system
+    const { count, error } = await supabase
+      .from('booking')
+      .select('booking_id', { count: 'exact', head: true })
+      .eq('user_id', numId);
+
+    if (error) {
+      console.error('[UserService] check user bookings error:', error.message);
+    }
+
+    if (count && count > 0) {
+      throw new Error(`ไม่สามารถลบผู้ใช้งานนี้ได้ เนื่องจากมีประวัติการจองห้องประชุม (${count} รายการ) อยู่ในระบบ`);
+    }
+
     return userRepository.delete(id);
   }
 }

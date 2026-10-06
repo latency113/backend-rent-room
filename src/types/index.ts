@@ -26,12 +26,16 @@ export interface User {
   // Computed / convenience
   id?: string | number;
   name?: string;
+  booking_count?: number;
 }
 
 // 2. Room
 export interface Room {
   room_id: number;
   room_name: string;
+  room_code?: string;
+  status?: number | string;
+  is_active?: boolean;
   capacity: number;
   location_detail?: string;
   // Related
@@ -48,7 +52,6 @@ export interface Room {
   floor?: string;
   description?: string;
   image_url?: string;
-  is_active?: boolean;
   equipment?: string[];
 }
 
